@@ -1,0 +1,80 @@
+<odoo>
+    <!-- Service Form View -->
+    <record id="view_service_form" model="ir.ui.view">
+        <field name="name">service.form</field>
+        <field name="model">service</field>
+        <field name="arch" type="xml">
+            <form string="Service Form">
+                <header>
+                    <button name="start_service" type="object" string="Start" class="oe_highlight"/>
+                    <button name="stop_service" type="object" string="Stop" class="oe_highlight"/>
+                    <button name="restart_service" type="object" string="Restart" class="oe_highlight"/>
+                    <button name="check_service_status" type="object" string="Check Service Status" class="oe_highlight"/>
+                    <field name="status" widget="statusbar" />
+
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <p>Service Name</p>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                         <group>
+                        <field name="server_id"/>
+                        <field name="url"/>
+                             <field name="port"/>
+
+                              </group>
+
+                          <group>
+
+                              
+
+                                </group>
+
+                         <group>
+
+                        <field name="last_checked"/>
+                        <field name="configuration_details"/>
+
+                         </group>
+                    </group>
+                </sheet>
+                 <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+
+
+
+            </form>
+        </field>
+    </record>
+
+    <!-- Service Tree View -->
+    <record id="view_service_tree" model="ir.ui.view">
+        <field name="name">service.tree</field>
+        <field name="model">service</field>
+        <field name="arch" type="xml">
+            <tree string="Service List">
+                <field name="name"/>
+                <field name="server_id"/>
+                <field name="url"/>
+                <field name="status"/>
+                <field name="last_checked"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Service Action -->
+    <record id="action_service" model="ir.actions.act_window">
+        <field name="name">Service</field>
+        <field name="res_model">service</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_service_tree"/>
+    </record>
+
+    <!-- Service Menu Item -->
+    <menuitem id="menu_service" name="Service" parent="menu_server_root" action="action_service"/>
+</odoo>

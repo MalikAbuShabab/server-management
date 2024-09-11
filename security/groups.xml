@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <!-- Define a new user group -->
+        <record id="group_server_manager" model="res.groups">
+            <field name="name">Server Manager</field>
+
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_service_manager,access_service_manager,model_service,group_server_manager,1,1,1,1
+access_server_manager,access_server_manager,model_server,group_server_manager,1,1,1,1
+access_server_command_manager,access_server_command_manager,model_server_command,group_server_manager,1,1,1,1
+access_server_maintenance_manager,access_server_maintenance_manager,model_server_maintenance,group_server_manager,1,1,1,1

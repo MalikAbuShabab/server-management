@@ -1,0 +1,68 @@
+<odoo>
+    <data>
+        <!-- Tree View for Server Command -->
+        <record id="view_server_command_tree" model="ir.ui.view">
+            <field name="name">server.command.tree</field>
+            <field name="model">server.command</field>
+            <field name="arch" type="xml">
+                <tree string="Commands">
+                    <field name="name"/>
+                    <field name="server_id"/>
+                    <field name="status"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- Form View for Server Command -->
+        <record id="view_server_command_form" model="ir.ui.view">
+            <field name="name">server.command.form</field>
+            <field name="model">server.command</field>
+            <field name="arch" type="xml">
+                <form string="Command">
+                       <header>
+                        <button name="execute_command" type="object" string="Execute Command" class="oe_highlight"
+                            />
+
+                </header>
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="server_id"/>
+                            <field name="command"/>
+                            <field name="status"/>
+                            <field name="result"/>
+                        </group>
+                    </sheet>
+                     <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+                </form>
+            </field>
+        </record>
+
+        <!-- Search View for Server Command -->
+        <record id="view_server_command_search" model="ir.ui.view">
+            <field name="name">server.command.search</field>
+            <field name="model">server.command</field>
+            <field name="arch" type="xml">
+                <search string="Search Commands">
+                    <field name="name"/>
+                    <field name="status"/>
+                    <field name="server_id"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action for Server Command -->
+        <record id="action_server_command" model="ir.actions.act_window">
+            <field name="name">Commands</field>
+            <field name="res_model">server.command</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <!-- Menu Item for Server Command -->
+        <menuitem id="menu_server_command" name="Commands" parent="menu_server_root" action="action_server_command"/>
+    </data>
+</odoo>
