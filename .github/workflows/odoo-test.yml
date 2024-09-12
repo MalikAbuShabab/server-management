@@ -65,7 +65,6 @@ jobs:
     - name: Install Odoo & Modules
       run: |
         cd odoo
-#        ./odoo-bin -c ../odoo.conf --init=base
         ./odoo-bin -c ../odoo.conf -d test_db --init=server_management --stop-after-init
 
     - name: Run Tests
