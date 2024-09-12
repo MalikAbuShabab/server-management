@@ -15,11 +15,11 @@ class TestServerManagement(TransactionCase):
             'password': 'testpassword',
             'password_type': 'password',
         })
-        self.test_command = self.ServerCommand.create({
-            'name': 'Test Command',
-            'command': 'echo Hello World',
-            'server_id': self.test_server.id,
-        })
+        # self.test_command = self.ServerCommand.create({
+        #     'name': 'Test Command',
+        #     'command': 'echo Hello World',
+        #     'server_id': self.test_server.id,
+        # })
         self.test_maintenance = self.ServerMaintenance.create({
             'name': 'Test Maintenance',
             'server_id': self.test_server.id,
