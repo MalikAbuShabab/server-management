@@ -20,12 +20,6 @@ class Service(models.Model):
         ('failed', 'Failed'),
     ], string='Status', default='inactive')
     last_checked = fields.Datetime('Last Checked')
-    configuration_details = fields.Text('Configuration Details')
-
-
-
-
-
     note = fields.Html('Note')
 
     def _execute_command(self, command):
@@ -35,7 +29,7 @@ class Service(models.Model):
             ssh = None
             try:
                 ssh = server._get_ssh_client()
-                stdin, stdout, stderr = ssh.exec_command(command)
+                stdin, stdout, stderr = ssh.exec_command(command,timeout=20)
                 exit_status = stdout.channel.recv_exit_status()  # Wait for command to finish
                 if exit_status != 0:
                     error_message = stderr.read().decode().strip()
@@ -81,67 +75,35 @@ class Service(models.Model):
         if len(records) == 500:  # assumes there are more whenever search hits limit
             self.env.ref('server_management.ir_cron_check_server_status')._trigger()
 
-
-
     def start_service(self):
         """Method to start the service."""
         for service in self:
-
-            try:
-                command = f'systemctl start {service.name}'
-                self._execute_command(command)
-
-                service.check_service_status()
-                _logger.info(f"Starting service: {service.name}")
-                service.message_post(body=f"Service '{service.name}' started successfully.",
-                                     message_type='notification')
-
-            except Exception as e:
-                _logger.error(f"Failed to start service {service.name}: {e}")
-                service.message_post(body=f"Failed to start service '{service.name}': {e}", message_type='notification')
-
-                raise UserError(f"Failed to start service {service.name}. See logs for details.")
-            finally:
-                service.last_checked = fields.Datetime.now()
+            self._service_action(service, 'start')
 
     def stop_service(self):
         """Method to stop the service."""
         for service in self:
-            try:
-                command = f'systemctl stop {service.name}'
-                self._execute_command(command)
-
-                service.check_service_status()
-                _logger.info(f"Stopping service: {service.name}")
-                service.message_post(body=f"Service '{service.name}' stopped successfully.",
-                                     message_type='notification')
-
-            except Exception as e:
-                _logger.error(f"Failed to stop service {service.name}: {e}")
-                service.message_post(body=f"Failed to stop service '{service.name}': {e}", message_type='notification')
-
-                raise UserError(f"Failed to stop service {service.name}. See logs for details.")
-            finally:
-                service.last_checked = fields.Datetime.now()
+            self._service_action(service, 'stop')
 
     def restart_service(self):
         """Method to restart the service."""
         for service in self:
-            try:
-                # Restarting the service
-                command = f'systemctl restart {service.name}'
-                self._execute_command(command)
+            self._service_action(service, 'restart')
 
-                service.check_service_status()
-                _logger.info(f"Restarting service: {service.name}")
-                service.message_post(body=f"Service '{service.name}' restarted successfully.",
-                                     message_type='notification')
+    def _service_action(self, service, action):
+        """Generic method for starting, stopping, or restarting a service."""
+        try:
+            command = f'systemctl {action} {service.name}'
+            self._execute_command(command)
 
-            except Exception as e:
-                _logger.error(f"Failed to restart service {service.name}: {e}")
-                service.message_post(body=f"Failed to restart service '{service.name}': {e}",
-                                     message_type='notification')
+            service.check_service_status()
+            _logger.info(f"{action.capitalize()} service: {service.name}")
+            service.message_post(body=f"Service '{service.name}' {action}ed successfully.", message_type='notification')
 
-                raise UserError(f"Failed to restart service {service.name}. See logs for details.")
-            finally:
-                service.last_checked = fields.Datetime.now()
+        except Exception as e:
+            _logger.error(f"Failed to {action} service {service.name}: {e}")
+            service.message_post(body=f"Failed to {action} service '{service.name}': {e}", message_type='notification')
+            raise UserError(f"Failed to {action} service {service.name}. See logs for details.")
+        finally:
+            service.last_checked = fields.Datetime.now()
+
