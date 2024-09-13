@@ -102,10 +102,8 @@
             <field name="model">server</field>
             <field name="arch" type="xml">
                 <search string="Server">
-                    <field name="name"/>
-                    <field name="ip_address"/>
-                    <field name="status"/>
-                    <field name="customer_id"/>
+
+                     <field name="name" string="Server" filter_domain="['|', ('ip_address', 'ilike', self), ('name', 'ilike', self)]"/>
                 </search>
             </field>
         </record>
