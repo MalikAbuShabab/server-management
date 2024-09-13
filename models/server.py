@@ -3,8 +3,25 @@ from odoo import fields, models, api
 from odoo.exceptions import ValidationError
 import paramiko
 import re
+from random import randint
 
 _logger = logging.getLogger(__name__)
+
+
+class Tag(models.Model):
+    _name = 'server.tag'
+    _description = 'Tag'
+
+    def _get_default_color(self):
+        return randint(1, 11)
+
+    name = fields.Char('Tag Name', required=True)
+    color = fields.Integer('Color Index',default=_get_default_color)
+
+    _sql_constraints = [
+        ('name_uniq', 'unique (name)', "Tag name already exists!"),
+    ]
+
 
 class Server(models.Model):
     _name = 'server'
@@ -18,6 +35,8 @@ class Server(models.Model):
     ssh_port = fields.Integer('SSH Port', tracking=True, default=22)
     is_active = fields.Boolean('Is Active', tracking=True, default=True)
     last_checked = fields.Datetime('Last Checked')
+    tag_ids = fields.Many2many('server.tag', string='Tags')
+
 
     password_type = fields.Selection([
         ('password', 'Password'),

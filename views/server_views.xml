@@ -12,7 +12,10 @@
                 <field name="status"/>
                 <field name="last_checked"/>
                 <field name="customer_id"/>
+                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}" optional="hide"/>
+
                 <field name="is_active"/>
+
             </tree>
         </field>
     </record>
@@ -47,6 +50,7 @@
                         <field name="username"/>
 
 
+
                         <field name="operating_system"/>
                         <field name="ssh_port"/>
                                 <field name="password_type"/>
@@ -56,6 +60,7 @@
                         <field name="status" readonly="1"/>
                         <field name="last_checked" readonly="1"/>
                         <field name="customer_id"/>
+                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': True}" placeholder="Tags"  />
                         <field name="is_active"/>
                                   </group>
 
