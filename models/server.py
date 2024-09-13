@@ -126,9 +126,9 @@ class ServerCommand(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Server Command'
 
-    name = fields.Char('Command Name', required=True)
-    command = fields.Text('Command', required=True)
-    server_id = fields.Many2one('server', string='Server', ondelete='cascade')
+    name = fields.Char('Command Name',tracking=True, required=True)
+    command = fields.Text('Command',tracking=True, required=True)
+    server_id = fields.Many2one('server', string='Server',tracking=True, ondelete='cascade')
     result = fields.Text('Result')
     status = fields.Selection([
         ('pending', 'Pending'),
