@@ -148,12 +148,15 @@
                             <field name="status"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="description"/>
-                    </group>
+
                     <group>
                         <field name="responsible_user_id"/>
                     </group>
+                     <notebook>
+                         <page string="Description">
+                            <field name="description"/>
+                        </page>
+                     </notebook>
                 </sheet>
                   <div class="oe_chatter">
                     <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>

@@ -2,21 +2,21 @@ import logging
 from odoo import fields, models, api
 from odoo.exceptions import ValidationError
 import paramiko
-
+import re
 
 _logger = logging.getLogger(__name__)
 
 class Server(models.Model):
     _name = 'server'
-    _inherit = [ 'mail.thread', 'mail.activity.mixin']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Server'
 
-    name = fields.Char('Server Name',tracking=True, required=True)
-    ip_address = fields.Char('IP Address',tracking=True, required=True)
+    name = fields.Char('Server Name', tracking=True, required=True)
+    ip_address = fields.Char('IP Address', tracking=True, required=True)
     username = fields.Char('Server Username', required=True)
     operating_system = fields.Char('Operating System')
-    ssh_port = fields.Integer('SSH Port',tracking=True, default=22)
-    is_active = fields.Boolean('Is Active',tracking=True, default=True)
+    ssh_port = fields.Integer('SSH Port', tracking=True, default=22)
+    is_active = fields.Boolean('Is Active', tracking=True, default=True)
     last_checked = fields.Datetime('Last Checked')
 
     password_type = fields.Selection([
@@ -25,8 +25,7 @@ class Server(models.Model):
     ], string='Password Type', default='password')
 
     password = fields.Char('Password')  # For password authentication
-    private_key = fields.Text('Private Key')
-
+    private_key = fields.Text('Private Key')  # For key-based authentication
 
     status = fields.Selection([
         ('running', 'Running'),
@@ -50,29 +49,30 @@ class Server(models.Model):
     @staticmethod
     def _is_valid_ip(ip):
         """Basic validation for an IP address format."""
-        import re
         pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
         return re.match(pattern, ip) is not None
 
     def _get_ssh_client(self):
-        """Helper method to create an SSH client connection."""
+        """Create and return an SSH client connection based on the server's configuration."""
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
         try:
             if self.password_type == 'password':
-                ssh.connect(self.ip_address, port=self.ssh_port, username=self.username,
-                            password=self.password)
+                ssh.connect(self.ip_address, port=self.ssh_port, username=self.username, password=self.password)
             elif self.password_type == 'key':
-                pass
+                key = paramiko.RSAKey.from_private_key(self.private_key)
+                ssh.connect(self.ip_address, port=self.ssh_port, username=self.username, pkey=key)
             else:
                 raise ValidationError("Unknown password type for server authentication.")
             return ssh
         except paramiko.AuthenticationException:
-            _logger.error(f"Authentication failed for {self.name}.")
+            _logger.error(f"Authentication failed for server {self.name}.")
             raise
         except paramiko.SSHException as e:
-            _logger.error(f"SSH connection failed for {self.name}: {e}")
+            _logger.error(f"SSH connection failed for server {self.name}: {e}")
+            raise
+        except Exception as e:
+            _logger.error(f"Unexpected error during SSH connection for server {self.name}: {e}")
             raise
 
     def check_server_status(self):
@@ -80,41 +80,33 @@ class Server(models.Model):
         timeout = 10  # Set the timeout value in seconds
         for server in self:
             try:
-
                 ssh = server._get_ssh_client()
-                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                if server.password_type == 'password':
-                    ssh.connect(server.ip_address, port=server.ssh_port, username=server.username,
-                                password=server.password, timeout=timeout)
-                elif server.password_type == 'key':
-                    pass
-                else:
-                    raise ValidationError("Unknown password type for server authentication.")
-                # Placeholder for server status checking logic
-                # E.g., use Paramiko or another method to SSH and verify server status
-                server.status = 'running'  # or 'stopped' based on the check
-                server.last_checked = fields.Datetime.now()
-
+                ssh.exec_command("uptime", timeout=timeout)
+                server.status = 'running'
+                _logger.info(f"Server {server.name} is running.")
             except paramiko.AuthenticationException:
                 server.status = 'stopped'
-                _logger.error(f"Authentication failed when trying to connect to {server.name}.")
+                _logger.error(f"Authentication failed for server {server.name}.")
             except paramiko.SSHException as e:
                 server.status = 'error'
-                _logger.error(f"SSH connection failed for {server.name}: {e}")
-
+                _logger.error(f"SSH connection failed for server {server.name}: {e}")
             except Exception as e:
                 server.status = 'error'
-                _logger.error(f"An error occurred while checking the status of {server.name}: {e}")
+                _logger.error(f"Unexpected error while checking the status of server {server.name}: {e}")
             finally:
                 server.last_checked = fields.Datetime.now()
-                ssh.close()
+                try:
+                    ssh.close()
+                except Exception:
+                    pass
 
     def _check_server_status_cron(self):
-
-        records = self.search([], limit=500)
-        records.check_server_status()
-        if len(records) == 500:  # assumes there are more whenever search hits limit
-            self.env.ref('server_management.ir_cron_check_server_status')._trigger()
+        """Cron job to periodically check the status of all servers."""
+        records = self.search([('is_active', '=', True)], limit=500)
+        if records:
+            records.check_server_status()
+            if len(records) == 500:  # Assumes there are more if the limit is hit
+                self.env.ref('server_management.ir_cron_check_server_status')._trigger()
 
     @api.model
     def create(self, vals):
@@ -124,7 +116,8 @@ class Server(models.Model):
 
     def write(self, vals):
         """Override write method to add additional logic."""
-        _logger.info(f"Updating server {self.name} with values: {vals}")
+        masked_vals = {k: v if k != 'password' else '***' for k, v in vals.items()}
+        _logger.info(f"Updating server {self.name} with values: {masked_vals}")
         return super(Server, self).write(vals)
 
 
@@ -151,22 +144,32 @@ class ServerCommand(models.Model):
         return super(ServerCommand, self).create(vals)
 
     def execute_command(self):
-        """Method to execute the command on the associated server."""
+        """Execute the command on the associated server."""
         for command in self:
             try:
                 server = command.server_id
                 ssh = server._get_ssh_client()
                 command.status = 'running'
-                stdin, stdout, stderr = ssh.exec_command(command.command)
+                stdin, stdout, stderr = ssh.exec_command(command.command, timeout=20)
                 command.result = stdout.read().decode() + stderr.read().decode()
-                command.status = 'completed' if stdout.channel.recv_exit_status() == 0 else 'failed'
+                if stdout.channel.recv_exit_status() == 0:
+                    command.status = 'completed'
+                    _logger.info(f"Successfully executed command '{command.name}' on server {server.name}.")
+                else:
+                    command.status = 'failed'
+                    _logger.error(f"Command '{command.name}' failed on server {server.name}.")
+                command.message_post(body=f"Executed command '{command.name}' on server {server.name}.",
+                                     message_type='notification')
             except Exception as e:
                 _logger.error(f"Failed to execute command '{command.name}' on server {server.name}: {e}")
                 command.result = str(e)
                 command.status = 'failed'
+                command.message_post(body=f"Failed to execute command '{command.name}' on server {server.name}: {e}",
+                                     message_type='notification')
             finally:
                 ssh.close()
                 command.write({'status': command.status, 'result': command.result})
+
 
 class ServerMaintenance(models.Model):
     _name = 'server.maintenance'
@@ -181,7 +184,8 @@ class ServerMaintenance(models.Model):
     ], string='Maintenance Type', required=True, default='unplanned')
     start_date = fields.Datetime('Start Date', required=True)
     end_date = fields.Datetime('End Date')
-    description = fields.Text('Description')
+    description = fields.Html('Description')
+
     status = fields.Selection([
         ('scheduled', 'Scheduled'),
         ('in_progress', 'In Progress'),
@@ -197,22 +201,16 @@ class ServerMaintenance(models.Model):
         return super(ServerMaintenance, self).create(vals)
 
     def start_maintenance(self):
-        """Method to start the maintenance."""
+        """Start the maintenance."""
         for maintenance in self:
             maintenance.status = 'in_progress'
             maintenance.server_id.status = 'stopped'
-            _logger.info(f"Started maintenance '{maintenance.name}' on server {maintenance.server_id.name}")
+            _logger.info(f"Started maintenance {maintenance.name} for server {maintenance.server_id.name}")
 
     def complete_maintenance(self):
-        """Method to complete the maintenance."""
+        """Complete the maintenance."""
         for maintenance in self:
             maintenance.status = 'completed'
-            maintenance.end_date = fields.Datetime.now()
             maintenance.server_id.status = 'running'
-            _logger.info(f"Completed maintenance '{maintenance.name}' on server {maintenance.server_id.name}")
-
-    def cancel_maintenance(self):
-        """Method to cancel the maintenance."""
-        for maintenance in self:
-            maintenance.status = 'cancelled'
-            _logger.info(f"Cancelled maintenance '{maintenance.name}' on server {maintenance.server_id.name}")
+            maintenance.end_date = fields.Datetime.now()
+            _logger.info(f"Completed maintenance {maintenance.name} for server {maintenance.server_id.name}")
