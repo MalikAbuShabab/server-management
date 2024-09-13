@@ -49,7 +49,7 @@ class Service(models.Model):
         for service in self:
             try:
                 command = f'systemctl is-active {service.name}'
-                status = self._execute_command(command,timeout=0)
+                status = self._execute_command(command,timeout=100)
 
                 if status == 'active':
                     service.status = 'active'
