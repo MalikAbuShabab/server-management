@@ -60,7 +60,9 @@
                 <field name="name"/>
                 <field name="server_id"/>
                 <field name="url"/>
-                <field name="status"/>
+                <field name="status"
+                       decoration-success="status in ['active']"
+                       decoration-danger="status in ['inactive', 'failed']" widget="badge"/>
                 <field name="last_checked"/>
             </tree>
         </field>
