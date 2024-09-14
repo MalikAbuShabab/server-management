@@ -33,8 +33,10 @@
                                 </group>
 
                          <group>
+                        <field name="is_active"/>
 
                         <field name="last_checked"/>
+
 
                          </group>
                     </group>
@@ -63,6 +65,7 @@
                 <field name="status"
                        decoration-success="status in ['active']"
                        decoration-danger="status in ['inactive', 'failed']" widget="badge"/>
+                <field name="is_active"/>
                 <field name="last_checked"/>
             </tree>
         </field>
