@@ -29,7 +29,7 @@ class Service(models.Model):
             ssh = None
             try:
                 ssh = server._get_ssh_client()
-                stdin, stdout, stderr = ssh.exec_command(command,timeout=100).strip()
+                stdin, stdout, stderr = ssh.exec_command(command,timeout=100)
                 exit_status = stdout.channel.recv_exit_status()  # Wait for command to finish
                 if exit_status != 0:
                     error_message = stderr.read().decode().strip()
