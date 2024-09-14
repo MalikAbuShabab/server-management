@@ -22,14 +22,14 @@ class Service(models.Model):
     last_checked = fields.Datetime('Last Checked')
     note = fields.Html('Note')
 
-    def _execute_command(self, command,timeout=20):
+    def _execute_command(self, command):
         """Helper method to execute an SSH command and handle errors."""
         for service in self:
             server = service.server_id
             ssh = None
             try:
                 ssh = server._get_ssh_client()
-                stdin, stdout, stderr = ssh.exec_command(command)
+                stdin, stdout, stderr = ssh.exec_command(command,timeout=100).strip()
                 exit_status = stdout.channel.recv_exit_status()  # Wait for command to finish
                 if exit_status != 0:
                     error_message = stderr.read().decode().strip()
@@ -49,7 +49,7 @@ class Service(models.Model):
         for service in self:
             try:
                 command = f'systemctl is-active {service.name}'
-                status = self._execute_command(command,timeout=100)
+                status = self._execute_command(command)
 
                 if status == 'active':
                     service.status = 'active'
