@@ -21,6 +21,7 @@ class Service(models.Model):
         ('failed', 'Failed'),
     ], string='Status', default='inactive')
     last_checked = fields.Datetime('Last Checked')
+    is_active = fields.Boolean('Is Active', tracking=True, default=True)
     note = fields.Html('Note')
 
     def _execute_command(self, command):
@@ -67,7 +68,7 @@ class Service(models.Model):
 
     def check_service_status(self):
         """Method to check the status of the services in parallel."""
-        services = self.search([])  # You may limit this as needed
+        services = self.search([('is_active', '=', True)])  # Only check active services
 
         with ThreadPoolExecutor(max_workers=10) as executor:  # Adjust max_workers as per your server capacity
             futures = {executor.submit(self._parallel_check_service, service): service for service in services}
