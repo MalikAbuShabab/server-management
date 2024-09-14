@@ -2,6 +2,7 @@ import logging
 import paramiko
 from odoo import fields, models
 from odoo.exceptions import UserError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 _logger = logging.getLogger(__name__)
 
@@ -44,29 +45,39 @@ class Service(models.Model):
                 if ssh:
                     ssh.close()
 
-    def check_service_status(self):
-        """Method to check the status of the service."""
-        for service in self:
-            try:
-                command = f'systemctl is-active {service.name}'
-                status = self._execute_command(command)
+    def _parallel_check_service(self, service):
+        """Parallel execution for checking service status."""
+        try:
+            command = f'systemctl is-active {service.name}'
+            status = service._execute_command(command)
 
-                if status == 'active':
-                    service.status = 'active'
-                elif status == 'inactive':
-                    service.status = 'inactive'
-                else:
-                    service.status = 'failed'
-                    # service.restart_service()
-
-                _logger.info(f"Service {service.name} status checked: {service.status}")
-
-            except Exception as e:
+            if status == 'active':
+                service.status = 'active'
+            elif status == 'inactive':
+                service.status = 'inactive'
+            else:
                 service.status = 'failed'
-                # service.restart_service()
-                _logger.error(f"An error occurred while checking the status of {service.name}: {e}")
-            finally:
-                service.last_checked = fields.Datetime.now()
+
+            _logger.info(f"Service {service.name} status checked: {service.status}")
+        except Exception as e:
+            service.status = 'failed'
+            _logger.error(f"An error occurred while checking the status of {service.name}: {e}")
+        finally:
+            service.last_checked = fields.Datetime.now()
+
+    def check_service_status(self):
+        """Method to check the status of the services in parallel."""
+        services = self.search([])  # You may limit this as needed
+
+        with ThreadPoolExecutor(max_workers=10) as executor:  # Adjust max_workers as per your server capacity
+            futures = {executor.submit(self._parallel_check_service, service): service for service in services}
+
+            for future in as_completed(futures):
+                service = futures[future]
+                try:
+                    future.result()  # This will raise any exception caught during the parallel execution
+                except Exception as e:
+                    _logger.error(f"Error while processing service {service.name}: {e}")
 
     def _check_service_status_cron(self):
 
