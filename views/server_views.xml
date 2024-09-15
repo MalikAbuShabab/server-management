@@ -30,6 +30,8 @@
                        <header>
                         <button name="check_server_status" type="object" string="Check Server Status" class="oe_highlight"
                             icon="fa-refresh"/>
+                                               <field name="status" widget="statusbar" />
+
 
                 </header>
                 <sheet>
