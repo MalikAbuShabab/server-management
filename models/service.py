@@ -31,14 +31,21 @@ class Service(models.Model):
             ssh = None
             try:
                 ssh = server._get_ssh_client()
-                stdin, stdout, stderr = ssh.exec_command(command,timeout=100)
+                stdin, stdout, stderr = ssh.exec_command(command, timeout=100)
                 exit_status = stdout.channel.recv_exit_status()  # Wait for command to finish
-                if exit_status != 0:
+
+                # Handling exit statuses for systemctl is-active
+                if exit_status == 0:
+                    _logger.info(f"Service {service.name} is active.")
+                    return 'active'
+                elif exit_status == 3:
+                    _logger.info(f"Service {service.name} is inactive.")
+                    return 'inactive'
+                else:
                     error_message = stderr.read().decode().strip()
-                    _logger.error(f"Error executing command '{command}' on service {service.name}: {error_message}")
-                    raise UserError(f"Error executing command: {error_message}")
-                output = stdout.read().decode().strip()
-                return output
+                    _logger.error(f"Unexpected exit status {exit_status} for service {service.name}: {error_message}")
+                    return 'failed'
+
             except Exception as e:
                 _logger.error(f"Failed to execute command '{command}' on service {service.name}: {e}")
                 raise UserError(f"Failed to execute command: {e}")
