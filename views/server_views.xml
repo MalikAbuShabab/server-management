@@ -9,7 +9,7 @@
                 <field name="name"/>
                 <field name="ip_address"/>
                 <field name="operating_system"/>
-                <field name="status" />
+                <field name="status" widget="badge" />
                 <field name="last_checked"/>
                 <field name="customer_id"/>
                 <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}" optional="hide"/>
