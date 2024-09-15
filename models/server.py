@@ -194,14 +194,14 @@ class ServerMaintenance(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = 'Server Maintenance'
 
-    name = fields.Char('Maintenance Name', required=True)
-    server_id = fields.Many2one('server', string='Server', required=True, ondelete='cascade')
+    name = fields.Char('Maintenance Name',tracking=True, required=True)
+    server_id = fields.Many2one('server', string='Server', tracking=True,required=True, ondelete='cascade')
     maintenance_type = fields.Selection([
         ('planned', 'Planned'),
         ('unplanned', 'Unplanned'),
-    ], string='Maintenance Type', required=True, default='unplanned')
-    start_date = fields.Datetime('Start Date', required=True)
-    end_date = fields.Datetime('End Date')
+    ], string='Maintenance Type', required=True,tracking=True, default='unplanned')
+    start_date = fields.Datetime('Start Date',tracking=True, required=True)
+    end_date = fields.Datetime('End Date',tracking=True)
     description = fields.Html('Description')
 
     status = fields.Selection([
@@ -209,9 +209,9 @@ class ServerMaintenance(models.Model):
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
-    ], string='Status', default='scheduled')
+    ], string='Status',tracking=True, default='scheduled')
 
-    responsible_user_id = fields.Many2one('res.users', string='Responsible User')
+    responsible_user_id = fields.Many2one('res.users',tracking=True, string='Responsible User')
 
     @api.model
     def create(self, vals):

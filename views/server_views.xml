@@ -140,6 +140,14 @@
         <field name="arch" type="xml">
             <form string="Server Maintenance">
                  <header>
+
+
+                        <button name="start_maintenance" type="object" string="Start Maintenance" class="oe_highlight"
+                            />
+                        <button name="complete_maintenance" type="object" string="Complete Maintenance" class="oe_highlight"
+                            />
+
+
                                          <field name="status" widget="statusbar" />
 
                           </header>
