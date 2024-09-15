@@ -100,7 +100,7 @@ class Server(models.Model):
         for server in self:
             try:
                 ssh = server._get_ssh_client()
-                ssh.exec_command("uptime", timeout=timeout)
+                ssh.exec_command("uptime", timeout=100)
                 server.status = 'running'
                 _logger.info(f"Server {server.name} is running.")
             except paramiko.AuthenticationException:
