@@ -223,7 +223,7 @@ class ServerMaintenance(models.Model):
         """Start the maintenance."""
         for maintenance in self:
             maintenance.status = 'in_progress'
-            maintenance.server_id.status = 'stopped'
+            maintenance.server_id.status = 'maintenance'
             _logger.info(f"Started maintenance {maintenance.name} for server {maintenance.server_id.name}")
 
     def complete_maintenance(self):
