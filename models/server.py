@@ -1,6 +1,8 @@
 import logging
 from odoo import fields, models, api
 from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError
+
 import paramiko
 import re
 from random import randint
@@ -47,10 +49,11 @@ class Server(models.Model):
     private_key = fields.Text('Private Key')  # For key-based authentication
 
     status = fields.Selection([
-        ('running', 'Running'),
-        ('stopped', 'Stopped'),
-        ('error', 'Error'),
-    ], string='Status', default='running')
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('maintenance', 'Maintenance'),
+        ('failed', 'Failed')
+    ], string='Status', default='active', tracking=True)
 
     customer_id = fields.Many2one('res.partner', string='Customer', ondelete='set null')
     service_ids = fields.One2many('service', 'server_id', string='Services')
@@ -96,20 +99,21 @@ class Server(models.Model):
 
     def check_server_status(self):
         """Method to check the status of the server."""
+        servers = self.search([('status', '!=', 'maintenance')])  # Exclude servers in maintenance mode
         for server in self:
             try:
                 ssh = server._get_ssh_client()
                 ssh.exec_command("uptime", timeout=100)
-                server.status = 'running'
+                server.status = 'active'
                 _logger.info(f"Server {server.name} is running.")
             except paramiko.AuthenticationException:
-                server.status = 'stopped'
+                server.status = 'inactive'
                 _logger.error(f"Authentication failed for server {server.name}.")
             except paramiko.SSHException as e:
-                server.status = 'error'
+                server.status = 'failed'
                 _logger.error(f"SSH connection failed for server {server.name}: {e}")
             except Exception as e:
-                server.status = 'error'
+                server.status = 'failed'
                 _logger.error(f"Unexpected error while checking the status of server {server.name}: {e}")
             finally:
                 server.last_checked = fields.Datetime.now()
@@ -137,6 +141,26 @@ class Server(models.Model):
         masked_vals = {k: v if k != 'password' else '***' for k, v in vals.items()}
         _logger.info(f"Updating server {self.name} with values: {masked_vals}")
         return super(Server, self).write(vals)
+
+    def enter_maintenance(self):
+        """Method to put the server into maintenance mode."""
+        for server in self:
+            if server.status == 'active':
+                server.status = 'maintenance'
+                server.message_post(body=f"Server '{server.name}' is now in maintenance mode.",
+                                    message_type='notification')
+            else:
+                raise UserError(f"Cannot enter maintenance mode. Server '{server.name}' is currently {server.status}.")
+
+    def exit_maintenance(self):
+        """Method to exit the server from maintenance mode."""
+        for server in self:
+            if server.status == 'maintenance':
+                server.status = 'active'
+                server.message_post(body=f"Server '{server.name}' has exited maintenance mode.",
+                                    message_type='notification')
+            else:
+                raise UserError(f"Cannot exit maintenance mode. Server '{server.name}' is currently {server.status}.")
 
 
 class ServerCommand(models.Model):
