@@ -8,6 +8,8 @@
             <tree string="Server List">
                 <field name="name"/>
                 <field name="ip_address"/>
+                <field name="username"/>
+                <field name="password_type"/>
                 <field name="operating_system"/>
                 <field name="status" decoration-success="status in ['running']"
                        decoration-danger="status in ['stopped', 'error']" widget="badge"/>
