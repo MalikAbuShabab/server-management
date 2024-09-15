@@ -97,8 +97,6 @@ class Server(models.Model):
 
     def check_server_status(self):
         """Method to check the status of the server."""
-        servers = self.search([('status', '!=', 'maintenance')])  # Exclude servers in maintenance mode
-
         for server in self:
             try:
                 ssh = server._get_ssh_client()
@@ -123,7 +121,7 @@ class Server(models.Model):
 
     def _check_server_status_cron(self):
         """Cron job to periodically check the status of all servers."""
-        records = self.search([('is_active', '=', True)], limit=500)
+        records = self.search([('is_active', '=', True),('status', '!=', 'maintenance')], limit=500)
         if records:
             records.check_server_status()
             if len(records) == 500:  # Assumes there are more if the limit is hit
