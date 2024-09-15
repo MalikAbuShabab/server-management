@@ -77,7 +77,7 @@ class Service(models.Model):
         """Method to check the status of the services in parallel."""
         services = self.search([('is_active', '=', True)])  # Only check active services
 
-        with ThreadPoolExecutor(max_workers=10) as executor:  # Adjust max_workers as per your server capacity
+        with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as per your server capacity
             futures = {executor.submit(self._parallel_check_service, service): service for service in services}
 
             for future in as_completed(futures):
