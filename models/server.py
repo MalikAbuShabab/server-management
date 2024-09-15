@@ -96,7 +96,6 @@ class Server(models.Model):
 
     def check_server_status(self):
         """Method to check the status of the server."""
-        timeout = 10  # Set the timeout value in seconds
         for server in self:
             try:
                 ssh = server._get_ssh_client()

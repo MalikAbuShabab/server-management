@@ -77,7 +77,7 @@ class Service(models.Model):
 
     def _check_service_status_cron(self):
 
-        records = self.search([], limit=500)
+        records = self.search([('is_active', '=', True)], limit=500)
         records.check_service_status()
         if len(records) == 500:  # assumes there are more whenever search hits limit
             self.env.ref('server_management.ir_cron_check_server_status')._trigger()
